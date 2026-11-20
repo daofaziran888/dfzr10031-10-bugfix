@@ -23,6 +23,52 @@ def export_entries() -> dict[str, Any]:
     return {"module": "audit", "total": total, "items": items}
 
 
+@router.post("/receipt-traces", response_model=ActionResult)
+def create_receipt_trace(payload: EntryPayload) -> ActionResult:
+    """回执差错追查入口：接收审计操作编号、节点编号、尝试编号、输入批号与数据产物指纹。
+
+    识别终态对不上、产物引用错位和成功回执丢失，固化待复跑节点、受影响结果与
+    证据回执；缺字段时说明原因而不是静默丢弃。
+    """
+    trace, missing = service.create_receipt_trace(payload.values)
+    if missing:
+        return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
+    report = service.get_receipt_trace_report(int(trace["id"]))
+    return ActionResult(ok=True, message="回执差错追查已登记，证据已留存", entry={"追查任务": trace, "核对报告": report})
+
+
+@router.get("/receipt-traces", response_model=PageResult[dict])
+def list_receipt_traces(
+    keyword: str | None = Query(default=None, description="按追查编号或审计操作编号检索"),
+    status: str | None = Query(default=None, description="待核销、已核销"),
+    page: int = 1,
+    size: int = 20,
+) -> PageResult[dict]:
+    """回执差错追查任务列表；没有数据时返回空页，不报错。"""
+    if size > 200:
+        raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
+    items, total = service.list_receipt_traces(keyword=keyword, status=status, page=page, size=size)
+    return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/receipt-traces/{trace_id}", response_model=dict)
+def get_receipt_trace(trace_id: int) -> dict:
+    """读取单次追查的完整核对报告与留存证据；不存在时给出可读的错误说明。"""
+    report = service.get_receipt_trace_report(trace_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail=f"回执差错追查任务 {trace_id} 不存在或已归档")
+    return report
+
+
+@router.post("/receipt-traces/{trace_id}/write-off", response_model=ActionResult)
+def write_off_receipt(trace_id: int, payload: EntryPayload) -> ActionResult:
+    """核销终态残留的矛盾回执：只改审计日志中的核销状态，回执证据与数据产物均保留。"""
+    trace, message = service.write_off_receipt(trace_id, payload.values)
+    if trace is None:
+        return ActionResult(ok=False, message=message)
+    return ActionResult(ok=True, message=message, entry=trace)
+
+
 @router.get("", response_model=PageResult[dict])
 def list_entries(
     request: Request,

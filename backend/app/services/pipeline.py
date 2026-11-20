@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.services import receipt_trace
 from app.store import store
 
 MODULE = "pipeline"
@@ -63,3 +64,13 @@ class PipelineService:
         entry["pending"] = target != STATUS_ORDER[-1]
         entry["abnormal"] = action in NEGATIVE_ACTIONS
         return entry, f"分析节点已{action}"
+
+    # ---- 回执差错追查：可疑产物索引与复跑清单 ----
+
+    def suspicious_products(self, node_id: str | None = None) -> list[dict[str, Any]]:
+        """读取节点可疑产物索引，按实际产物引用生成、按指纹去重。"""
+        return receipt_trace.suspicious_product_index(node_id)
+
+    def rerun_plan(self, node_id: str | None = None) -> dict[str, Any]:
+        """生成待复跑节点及受影响结果清单，未受影响节点单列。"""
+        return receipt_trace.rerun_plan(node_id)

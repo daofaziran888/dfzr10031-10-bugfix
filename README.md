@@ -68,6 +68,31 @@ npm run dev
 | 数据导出 | `export` | 导出任务 | 任务编号、导出对象、导出格式 |
 | 数据审计 | `audit` | 审计记录 | 记录编号、操作类型、操作人 |
 
+### 回执差错追查（审计 × 分析管道）
+
+审计日志新增「回执差错追查」入口，核对分析管道运行回执：
+
+- 入口接收 **审计操作编号、节点编号、尝试编号、输入批号、数据产物指纹** 五个定位
+  字段（除审计操作编号外可留空，留空表示不按该维度收窄）。
+- 识别三类差错：**终态对不上**（`terminal_mismatch`，如迟到失败回执与已接受的重跑
+  成功回执并存）、**产物引用错位**（`product_misplaced`，含导致执行报错的引用，可追到
+  具体尝试）、**成功回执丢失**（`success_missing`）。
+- 影响范围按数据产物指纹去重：同一产物被多次尝试或中断重试引用只计一次；分析管道按
+  实际产物引用生成「待复跑节点 + 受影响结果」清单，并单列未受影响节点。
+- 迟到回执等证据全部留存；核销只在审计日志里改标记，不删除回执、不清理仍被下游消费
+  的产物。
+
+接口：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/audit/receipt-traces` | 登记追查并返回核对报告与证据 |
+| GET | `/api/audit/receipt-traces` | 追查任务列表 |
+| GET | `/api/audit/receipt-traces/{id}` | 单次追查完整报告与留存证据 |
+| POST | `/api/audit/receipt-traces/{id}/write-off` | 核销矛盾回执（证据留存） |
+| GET | `/api/pipeline/receipts/suspicious-products` | 可疑产物索引（指纹去重） |
+| GET | `/api/pipeline/receipts/rerun-plan` | 待复跑节点与受影响结果清单 |
+
 ## 约定
 
 - 每个模块的前端页面在 `frontend/src/views/<模块>/index.vue`，后端接口在

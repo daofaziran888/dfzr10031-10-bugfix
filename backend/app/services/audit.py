@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.services import receipt_trace
 from app.store import store
 
 MODULE = "audit"
@@ -63,3 +64,46 @@ class AuditService:
         entry["pending"] = target != STATUS_ORDER[-1]
         entry["abnormal"] = action in NEGATIVE_ACTIONS
         return entry, f"审计记录已{action}"
+
+    # ---- 回执差错追查 ----
+
+    def create_receipt_trace(self, values: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+        """登记回执差错追查：接收五个定位字段，固化核对结论与证据。"""
+        return receipt_trace.create_trace(values)
+
+    def list_receipt_traces(
+        self,
+        *,
+        keyword: str | None = None,
+        status: str | None = None,
+        page: int = 1,
+        size: int = 20,
+    ) -> tuple[list[dict[str, Any]], int]:
+        return receipt_trace.list_traces(keyword=keyword, status=status, page=page, size=size)
+
+    def get_receipt_trace(self, trace_id: int) -> dict[str, Any] | None:
+        return receipt_trace.get_trace(trace_id)
+
+    def get_receipt_trace_report(self, trace_id: int) -> dict[str, Any] | None:
+        """按追查任务登记时的范围重新核对，返回完整报告。"""
+        trace = receipt_trace.get_trace(trace_id)
+        if trace is None:
+            return None
+        scope = {field: trace.get(field, "") for field in receipt_trace.SCOPE_FIELDS}
+        report = receipt_trace.build_trace_report(scope)
+        report["追查任务"] = {
+            "追查编号": trace.get("追查编号"),
+            "status": trace.get("status"),
+            "核销回执编号": trace.get("核销回执编号", []),
+            "核销说明": trace.get("核销说明", ""),
+        }
+        report["留存证据"] = receipt_trace.get_trace_evidence(str(trace.get("追查编号")))
+        return report
+
+    def write_off_receipt(self, trace_id: int, values: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        """核销终态残留的矛盾回执，证据留存不删除。"""
+        return receipt_trace.write_off(
+            trace_id,
+            str(values.get("回执编号") or ""),
+            str(values.get("remark") or values.get("核销说明") or ""),
+        )

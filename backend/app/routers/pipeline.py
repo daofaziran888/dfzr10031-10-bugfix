@@ -23,6 +23,23 @@ def export_entries() -> dict[str, Any]:
     return {"module": "pipeline", "total": total, "items": items}
 
 
+@router.get("/receipts/suspicious-products", response_model=dict)
+def suspicious_products(
+    node_id: str | None = Query(default=None, description="按节点编号过滤可疑产物索引"),
+) -> dict[str, Any]:
+    """读取节点可疑产物索引：按实际产物引用生成，同一数据产物指纹只计一次。"""
+    items = service.suspicious_products(node_id)
+    return {"module": "pipeline", "total": len(items), "items": items}
+
+
+@router.get("/receipts/rerun-plan", response_model=dict)
+def rerun_plan(
+    node_id: str | None = Query(default=None, description="按节点编号过滤复跑清单"),
+) -> dict[str, Any]:
+    """按实际产物引用生成待复跑节点及受影响结果清单，并单列未受影响节点。"""
+    return service.rerun_plan(node_id)
+
+
 @router.get("", response_model=PageResult[dict])
 def list_entries(
     request: Request,

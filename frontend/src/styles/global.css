@@ -42,3 +42,18 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .modal-field span{font-size:13px;color:var(--muted)}
 .modal-field input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding:12px 18px}
+.modal-card-wide{width:880px}
+.modal-body-inner{display:flex;flex-direction:column;gap:12px}
+.modal-field em{color:#b42318;font-style:normal}
+.trace-panel{border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:#fafbfc}
+.trace-panel h4{margin:0;font-size:14px}
+.trace-tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2f6;color:#475467;font-size:12px;margin:2px 4px 2px 0;white-space:nowrap}
+.tag-warn{background:#fef3c7;color:#92400e}
+.tag-ok{background:#dcfae6;color:#067647}
+.trace-cols{display:flex;gap:16px}
+.trace-cols>div{flex:1;background:#fff;border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.trace-cols p{margin:4px 0 0;font-size:13px}
+.trace-list{margin:4px 0 0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.trace-table{font-size:12px}
+.trace-table th,.trace-table td{padding:6px 8px}
